@@ -1,76 +1,588 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>My Apology — For You</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=Lato:wght@300;400&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Apology — For You</title>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Pinyon+Script&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --rose:    #b83058;
+  --rose-lt: #e05c80;
+  --gold:    #c9a76c;
+  --cream:   #fdf6ec;
+  --ink:     #2a1520;
+  --bg:      #12060c;
+  --env-w:   380px;
+  --env-h:   260px;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+  font-family: 'Lato', sans-serif;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 55%, rgba(184,48,88,.13) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(8,1,5,.82) 100%);
+  pointer-events: none; z-index: 1;
+}
+
+canvas#bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* Stage */
+#stage {
+  position: relative; z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1.8rem;
+}
+
+#tagline {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: 1rem;
+  color: var(--gold); letter-spacing: .14em;
+  opacity: 0; transform: translateY(10px);
+}
+
+/* Scene — grows on open */
+#scene {
+  position: relative;
+  width: var(--env-w);
+  height: var(--env-h);
+  transition: width .85s cubic-bezier(.22,1,.36,1),
+              height .85s cubic-bezier(.22,1,.36,1);
+  perspective: 1400px;
+}
+#scene.opened {
+  width: min(620px, 92vw);
+  height: min(540px, 80vh);
+}
+
+/* Envelope shell */
+#envelope {
+  position: absolute; inset: 0;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 20px 50px rgba(184,48,88,.28));
+  transition: filter .4s;
+}
+#envelope:hover:not(.no-hover) {
+  filter: drop-shadow(0 28px 70px rgba(184,48,88,.48));
+}
+
+.env-body {
+  position: absolute; inset: 0;
+  border-radius: 8px;
+  background: linear-gradient(150deg, #fff0f3 0%, #ffdde5 100%);
+  border: 1.5px solid rgba(184,48,88,.2);
+}
+/* V-fold crease lines */
+.env-body::before, .env-body::after {
+  content: ''; position: absolute;
+  height: 1.5px; width: 145%; left: -22%;
+  background: rgba(184,48,88,.09);
+}
+.env-body::before { top: 58%;  transform: rotate(-34deg); }
+.env-body::after  { top: 58%;  transform: rotate(34deg);  }
+
+/* Wax seal */
+#seal {
+  position: absolute; bottom: 18px; left: 50%;
+  transform: translateX(-50%);
+  width: 52px; height: 52px;
+  background: radial-gradient(circle at 38% 36%, #e0607c, var(--rose) 55%, #7a1530);
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(184,48,88,.55), inset 0 2px 4px rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; z-index: 4;
+  transition: transform .35s ease, opacity .4s ease;
+}
+#scene.opened #seal { opacity: 0; transform: translateX(-50%) scale(.35); pointer-events: none; }
+
+/* Flap */
+#flap {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 55%;
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  transform: rotateX(0deg);
+  transition: transform .75s cubic-bezier(.4,0,.2,1);
+  z-index: 5;
+}
+.flap-front {
+  position: absolute; inset: 0;
+  background: linear-gradient(175deg, #ffe4ea 0%, #ffd0d9 100%);
+  border: 1.5px solid rgba(184,48,88,.2);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  clip-path: polygon(0 0, 100% 0, 50% 80%);
+  backface-visibility: hidden;
+}
+.flap-back {
+  position: absolute; inset: 0;
+  background: linear-gradient(175deg, #f5bfc9 0%, #f0aab8 100%);
+  clip-path: polygon(0 0, 100% 0, 50% 80%);
+  backface-visibility: hidden;
+  transform: rotateX(180deg);
+}
+#scene.opened #flap { transform: rotateX(-180deg); }
+
+/* Letter */
+#letter {
+  position: absolute;
+  left: 6%; right: 6%;
+  top: 8%; bottom: 8%;
+  background: var(--cream);
+  border-radius: 4px;
+  padding: 2.25rem 2rem 2rem 3rem;
+  box-shadow: 0 8px 40px rgba(26,10,18,.22);
+  transform: translateY(78%) scale(.94);
+  transform-origin: bottom center;
+  transition: transform .85s cubic-bezier(.22,1,.36,1) .12s;
+  z-index: 3;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rose-lt) transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+#scene.opened #letter { transform: translateY(-6%) scale(1); }
+
+/* Ruled lines */
+#letter::before {
+  content: ''; position: absolute; inset: 0; border-radius: 4px;
+  background: repeating-linear-gradient(
+    transparent, transparent 29px,
+    rgba(184,48,88,.065) 29px, rgba(184,48,88,.065) 30px
+  );
+  pointer-events: none;
+}
+/* Red margin */
+#letter::after {
+  content: ''; position: absolute;
+  top: 0; bottom: 0; left: 46px;
+  width: 1.5px; background: rgba(184,48,88,.18);
+  pointer-events: none;
+}
+
+.ltr-date {
+  position: relative;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .82rem; color: var(--rose);
+  letter-spacing: .07em; margin-bottom: 1.1rem;
+  opacity: 0;
+}
+.ltr-salutation {
+  position: relative;
+  font-family: 'Pinyon Script', cursive;
+  font-size: 1.9rem; color: var(--rose);
+  line-height: 1.2; margin-bottom: .9rem;
+  opacity: 0;
+}
+.ltr-body {
+  position: relative;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.08rem; color: var(--ink);
+  line-height: 1.85; font-weight: 400;
+  opacity: 0;
+}
+.ltr-sign {
+  position: relative;
+  margin-top: 1.4rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; color: var(--ink);
+  opacity: 0;
+}
+.ltr-signature {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 2.1rem; color: var(--rose);
+  display: block; margin-top: .1rem;
+}
+
+/* Hint */
+#hint {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: .9rem;
+  color: rgba(255,255,255,.3); letter-spacing: .12em;
+  opacity: 0; transition: opacity .5s;
+}
+#hint.gone { opacity: 0 !important; pointer-events: none; }
+
+/* Reply button */
+#reply-btn {
+  padding: .65rem 2.4rem;
+  border: 1.5px solid var(--gold);
+  background: transparent; color: var(--gold);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; letter-spacing: .14em;
+  border-radius: 30px; cursor: pointer;
+  opacity: 0; pointer-events: none;
+  transform: translateY(8px);
+  transition: background .3s, color .3s, opacity .5s, transform .5s;
+}
+#reply-btn.show { opacity: 1; pointer-events: all; transform: translateY(0); }
+#reply-btn:hover { background: var(--gold); color: var(--bg); }
+
+/* Modal */
+#modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(6,1,4,.82);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .35s;
+}
+#modal-overlay.active { opacity: 1; pointer-events: all; }
+
+#modal {
+  background: var(--cream);
+  border-radius: 12px;
+  padding: 2.75rem 2.5rem 2.25rem;
+  width: min(500px, 92vw);
+  box-shadow: 0 32px 90px rgba(6,1,4,.6);
+  transform: translateY(22px) scale(.97);
+  transition: transform .35s;
+}
+#modal-overlay.active #modal { transform: none; }
+
+#modal h2 {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 2.1rem; color: var(--rose);
+  margin-bottom: 1.4rem;
+}
+#modal label {
+  display: block;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .78rem; letter-spacing: .1em;
+  color: #999; margin-bottom: .35rem;
+  text-transform: uppercase;
+}
+#reply-name, #reply-msg {
+  width: 100%;
+  border: 1.5px solid rgba(184,48,88,.25);
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; color: var(--ink);
+  background: #fff9f0;
+  outline: none;
+  transition: border-color .25s;
+  margin-bottom: 1.1rem;
+  -webkit-font-smoothing: antialiased;
+}
+#reply-name:focus, #reply-msg:focus { border-color: var(--rose); }
+#reply-msg { min-height: 130px; resize: vertical; }
+
+.modal-row { display: flex; gap: .75rem; justify-content: flex-end; }
+
+.btn-cancel {
+  padding: .58rem 1.6rem;
+  border: 1.5px solid #ccc; background: transparent;
+  color: #999; border-radius: 24px; cursor: pointer;
+  font-family: 'Lato', sans-serif; font-size: .85rem;
+  transition: border-color .2s, color .2s;
+}
+.btn-cancel:hover { border-color: #aaa; color: #666; }
+
+.btn-send {
+  padding: .58rem 1.9rem;
+  border: none; background: var(--rose); color: #fff;
+  border-radius: 24px; cursor: pointer;
+  font-family: 'Lato', sans-serif; font-size: .85rem;
+  transition: background .25s, transform .15s;
+}
+.btn-send:hover { background: var(--rose-lt); transform: translateY(-1px); }
+.btn-send:disabled { background: #bbb; cursor: not-allowed; transform: none; }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 2.5rem; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1e0d14; color: #fff;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: 1rem;
+  padding: .8rem 2.2rem; border-radius: 30px;
+  border: 1px solid rgba(184,48,88,.3);
+  opacity: 0; pointer-events: none;
+  transition: opacity .4s, transform .4s;
+  z-index: 60;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Floating hearts */
+.hpop {
+  position: fixed; pointer-events: none;
+  opacity: 0; z-index: 20;
+  animation: hRise 2.4s ease-out forwards;
+}
+@keyframes hRise {
+  0%   { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(-200px) scale(.25) rotate(22deg); }
+}
+
+#letter::-webkit-scrollbar { width: 5px; }
+#letter::-webkit-scrollbar-thumb { background: var(--rose-lt); border-radius: 3px; }
+</style>
 </head>
 <body>
-  <!-- Decorative particle canvas -->
-  <canvas id="bg-canvas"></canvas>
 
-  <!-- Compact utility bar -->
-  <header class="topbar">
-    <button id="btn-theme" aria-label="Toggle light/dark theme">🌓</button>
-  </header>
+<canvas id="bg"></canvas>
 
-  <!-- Main stage -->
-  <main id="stage" class="stage">
-    <p id="tagline" class="tagline">✦ A letter, written from the heart ✦</p>
+<div id="stage">
+  <p id="tagline">✦ &nbsp; A letter, written from the heart &nbsp; ✦</p>
 
-    <div id="env-wrapper" class="env-wrapper">
-      <div id="envelope" class="envelope" role="button" aria-label="Open the letter" tabindex="0">
-        <div class="env-body"></div>
-        <div class="flap">
-          <div class="flap-face"></div>
-          <div class="flap-back"></div>
-        </div>
-        <div class="seal">💌</div>
+  <div id="scene">
+    <div id="envelope" role="button" aria-label="Open the letter" tabindex="0">
+      <div class="env-body"></div>
 
-        <article class="letter" id="letter">
-          <div class="letter-content">
-            <p class="letter-date" id="letter-date"></p>
-            <p class="letter-salutation">Dear Sweetheart,</p>
-            <p class="letter-body">
-              I sincerely apologize for the pain I have caused you on Sunday.
-              I have been having a hard time knowing that I hurt you.
-              You know I love you so much, and it hurts me seeing you hurt.
-              This will not happen again. I will do my best to make things right,
-              so please let me do it right.<br /><br />
-              Please accept my apology.
-            </p>
-            <p class="letter-sign">
-              Sincerely,<br />
-              <span class="signature">Clark Kent</span>
-            </p>
-          </div>
-        </article>
+      <div id="flap">
+        <div class="flap-front"></div>
+        <div class="flap-back"></div>
       </div>
-    </div>
 
-    <p id="hint" class="hint">✦ click to open ✦</p>
-    <button id="reply-btn" class="reply-btn">Write a Reply ✉</button>
-  </main>
+      <div id="seal">💌</div>
 
-  <!-- Reply modal -->
-  <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Write a reply">
-    <div id="modal" class="modal">
-      <h2>Your Reply</h2>
-      <textarea id="reply-text" placeholder="Write your reply here…"></textarea>
-      <div class="modal-actions">
-        <button id="btn-cancel" class="btn btn-cancel">Cancel</button>
-        <button id="btn-send"   class="btn btn-send">Send Reply 💌</button>
-      </div>
+      <article id="letter">
+        <p class="ltr-date" id="ltr-date"></p>
+        <p class="ltr-salutation">Dear Sweetheart,</p>
+        <p class="ltr-body">
+          I sincerely apologize for the pain I have caused you on Sunday.
+          I have been having a hard time knowing that I hurt you.
+          You know I love you so much, and it hurts me seeing you hurt.
+          This will not happen again. I will do my best to make things right,
+          so please let me do it right.<br><br>
+          Please accept my apology.
+        </p>
+        <p class="ltr-sign">
+          Sincerely,
+          <span class="ltr-signature">Clark Kent</span>
+        </p>
+      </article>
     </div>
   </div>
 
-  <!-- Toast -->
-  <div id="toast" class="toast">Reply sent with love 💕</div>
+  <p id="hint">✦ &nbsp; click to open &nbsp; ✦</p>
+  <button id="reply-btn">Write a Reply &nbsp;✉</button>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js" defer></script>
-  <script src="index.js" defer></script>
+<!-- Reply modal -->
+<div id="modal-overlay" role="dialog" aria-modal="true">
+  <div id="modal">
+    <h2>Your Reply</h2>
+    <label for="reply-name">Your Name</label>
+    <input type="text" id="reply-name" placeholder="e.g. Lois Lane" autocomplete="off">
+    <label for="reply-msg">Your Message</label>
+    <textarea id="reply-msg" placeholder="Write your reply here…"></textarea>
+    <div class="modal-row">
+      <button class="btn-cancel" id="btn-cancel">Cancel</button>
+      <button class="btn-send"   id="btn-send">Send Reply 💌</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   EmailJS Setup
+   1. Go to https://www.emailjs.com  (free account)
+   2. Add an Email Service  → copy Service ID
+   3. Add a Template with variables:
+        {{from_name}}  {{message}}  {{to_email}}
+      → copy Template ID
+   4. Copy your Public Key from Account → API Keys
+   5. Paste the three values below
+═══════════════════════════════════════════════════ */
+const EJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // ← replace
+const EJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // ← replace
+const EJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // ← replace
+const RECIPIENT       = 'baldwinmalabanan.bm@gmail.com';
+
+emailjs.init(EJS_PUBLIC_KEY);
+
+/* ── Particle canvas ── */
+const canvas = document.getElementById('bg');
+const ctx    = canvas.getContext('2d');
+let W, H;
+const resize = () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight; };
+resize();
+window.addEventListener('resize', resize);
+
+const SYMS = ['♥','✦','✿','·','✧'];
+const pts  = Array.from({ length: 60 }, () => mkPt(true));
+
+function mkPt(scatter) {
+  return {
+    x: Math.random() * (W || 800),
+    y: scatter ? Math.random() * (H || 600) : (H || 600) + 10,
+    s: SYMS[Math.floor(Math.random() * SYMS.length)],
+    sz: Math.random() * 13 + 6,
+    sp: Math.random() * .5 + .18,
+    a:  Math.random() * .45 + .08,
+    dx: (Math.random() - .5) * .35,
+    r:  Math.random() * Math.PI * 2,
+    rs: (Math.random() - .5) * .012,
+  };
+}
+
+(function tick() {
+  ctx.clearRect(0, 0, W, H);
+  pts.forEach((p, i) => {
+    p.y -= p.sp; p.x += p.dx; p.r += p.rs;
+    if (p.y < -20) pts[i] = mkPt(false);
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.r);
+    ctx.globalAlpha = p.a;
+    ctx.fillStyle   = p.s === '♥' ? '#b83058' : '#c9a76c';
+    ctx.font        = `${p.sz}px serif`;
+    ctx.textAlign = ctx.textBaseline = 'middle';
+    ctx.fillText(p.s, 0, 0);
+    ctx.restore();
+  });
+  requestAnimationFrame(tick);
+})();
+
+/* ── Intro ── */
+gsap.to('#tagline', { opacity: 1, y: 0, duration: 1.2, ease: 'power2.out', delay: .4 });
+gsap.to('#hint',    { opacity: 1, duration: 1, delay: 1.1 });
+
+document.getElementById('ltr-date').textContent =
+  new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+/* ── Open envelope ── */
+const scene    = document.getElementById('scene');
+const env      = document.getElementById('envelope');
+const hintEl   = document.getElementById('hint');
+const replyBtn = document.getElementById('reply-btn');
+let opened = false;
+
+function openEnvelope() {
+  if (opened) return;
+  opened = true;
+  env.classList.add('no-hover');
+  scene.classList.add('opened');
+  hintEl.classList.add('gone');
+
+  gsap.to('.ltr-date',        { opacity: 1, y: 0, duration: .55, delay: .95 });
+  gsap.to('.ltr-salutation',  { opacity: 1, y: 0, duration: .6,  delay: 1.15 });
+  gsap.to('.ltr-body',        { opacity: 1, y: 0, duration: .7,  delay: 1.35 });
+  gsap.to('.ltr-sign',        { opacity: 1, y: 0, duration: .55, delay: 1.7  });
+
+  spawnHearts(innerWidth / 2, innerHeight / 2, 14);
+  setTimeout(() => replyBtn.classList.add('show'), 2200);
+}
+
+env.addEventListener('click', openEnvelope);
+env.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openEnvelope(); });
+
+/* 3-D tilt on hover */
+scene.addEventListener('mousemove', e => {
+  if (opened) return;
+  const r  = scene.getBoundingClientRect();
+  const dx = (e.clientX - r.left - r.width  / 2) / (r.width  / 2);
+  const dy = (e.clientY - r.top  - r.height / 2) / (r.height / 2);
+  gsap.to(env, { rotateY: dx * 10, rotateX: -dy * 8, duration: .4, ease: 'power2.out' });
+});
+scene.addEventListener('mouseleave', () => {
+  if (!opened) gsap.to(env, { rotateY: 0, rotateX: 0, duration: .6, ease: 'elastic.out(1,.6)' });
+});
+
+/* ── Heart burst ── */
+function spawnHearts(cx, cy, count) {
+  const s = ['💕','💗','💖','♥','💓','🌹'];
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'hpop';
+      el.textContent = s[Math.floor(Math.random() * s.length)];
+      el.style.cssText = `left:${cx + (Math.random()-.5)*200}px;top:${cy + (Math.random()-.5)*100}px;font-size:${Math.random()*18+10}px`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    }, i * 75);
+  }
+}
+
+/* ── Modal ── */
+const overlay   = document.getElementById('modal-overlay');
+const replyName = document.getElementById('reply-name');
+const replyMsg  = document.getElementById('reply-msg');
+const sendBtn   = document.getElementById('btn-send');
+const toast     = document.getElementById('toast');
+
+replyBtn.addEventListener('click', () => { overlay.classList.add('active'); replyName.focus(); });
+document.getElementById('btn-cancel').addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+function closeModal() { overlay.classList.remove('active'); }
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3600);
+}
+
+sendBtn.addEventListener('click', async () => {
+  const name = replyName.value.trim();
+  const msg  = replyMsg.value.trim();
+
+  replyName.style.borderColor = name ? '' : 'var(--rose)';
+  replyMsg.style.borderColor  = msg  ? '' : 'var(--rose)';
+  if (!name) { replyName.focus(); return; }
+  if (!msg)  { replyMsg.focus();  return; }
+
+  sendBtn.disabled    = true;
+  sendBtn.textContent = 'Sending…';
+
+  try {
+    await emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_ID, {
+      to_email:  RECIPIENT,
+      from_name: name,
+      message:   msg,
+    });
+
+    closeModal();
+    replyName.value = '';
+    replyMsg.value  = '';
+    showToast('Reply sent with love 💕');
+    spawnHearts(innerWidth / 2, innerHeight * .65, 20);
+
+  } catch (err) {
+    console.error('EmailJS error:', err);
+    showToast('⚠️ Could not send — check EmailJS config');
+  } finally {
+    sendBtn.disabled    = false;
+    sendBtn.textContent = 'Send Reply 💌';
+  }
+});
+</script>
 </body>
 </html>
