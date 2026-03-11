@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -295,6 +296,105 @@ body::after {
 #letter-card::-webkit-scrollbar-thumb { background: var(--rose2); border-radius: 3px; }
 
 /* ═══════════════════════════
+   QUESTION + BUTTONS
+═══════════════════════════ */
+.lc-question {
+  margin-top: 2rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(184,48,88,.15);
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+.lc-question.show { opacity: 1; }
+
+.question-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem; color: var(--ink);
+  text-align: center; margin-bottom: 1.2rem;
+  font-style: italic;
+}
+
+.btn-row {
+  display: flex; gap: 1rem;
+  justify-content: center;
+  position: relative;
+  min-height: 48px;
+}
+
+#btn-yes {
+  padding: .65rem 2rem;
+  background: var(--rose); color: #fff;
+  border: none; border-radius: 30px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem; cursor: pointer;
+  box-shadow: 0 4px 18px rgba(184,48,88,.4);
+  transition: transform .2s, background .2s;
+}
+#btn-yes:hover { background: var(--rose2); transform: scale(1.06); }
+
+#btn-no {
+  padding: .65rem 2rem;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ink); border: 1.5px solid rgba(42,21,32,.18);
+  border-radius: 30px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem; cursor: pointer;
+  position: absolute;
+  transition: font-size .25s, left .3s cubic-bezier(.22,1,.36,1), top .3s cubic-bezier(.22,1,.36,1);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+/* ═══════════════════════════
+   CELEBRATE SCREEN
+═══════════════════════════ */
+#celebrate-screen {
+  position: fixed; inset: 0; z-index: 40;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  opacity: 0; pointer-events: none;
+  transition: opacity .8s ease;
+}
+#celebrate-screen.show { opacity: 1; pointer-events: all; }
+
+#confetti-canvas {
+  position: absolute; inset: 0;
+  pointer-events: none;
+}
+
+#celebrate-msg {
+  position: relative; z-index: 2;
+  text-align: center;
+  animation: cel-pop .7s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes cel-pop {
+  0%   { transform: scale(.6); opacity: 0; }
+  100% { transform: scale(1);  opacity: 1; }
+}
+
+.cel-top {
+  font-family: 'Pinyon Script', cursive;
+  font-size: clamp(2rem, 5vw, 3.2rem); color: var(--gold);
+  text-shadow: 0 0 40px rgba(201,167,108,.5);
+  line-height: 1.2;
+  max-width: 480px;
+  text-align: center;
+}
+.cel-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: 1.5rem;
+  color: #fff; margin-top: .8rem; letter-spacing: .06em;
+}
+.cel-sig {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; color: rgba(255,255,255,.4);
+  margin-top: .6rem; letter-spacing: .1em;
+}
+
+/* ═══════════════════════════
    FLOATING HEARTS
 ═══════════════════════════ */
 .hpop {
@@ -307,14 +407,16 @@ body::after {
   100% { opacity: 0; transform: translateY(-220px) scale(.2) rotate(20deg); }
 }
 </style>
+
 </head>
 <body>
 
 <canvas id="bg-canvas"></canvas>
 
 <!-- ── SCREEN 1: GIF ── -->
+
 <div id="gif-screen">
-  <img id="sorry-gif" src="SORRY.gif" alt="Sorry">
+  <img id="sorry-gif" src="SORRY.GIF" alt="Sorry">
   <p id="tap-hint">
     <span class="tap-icon">👆</span>
     tap to open
@@ -322,6 +424,7 @@ body::after {
 </div>
 
 <!-- ── SCREEN 2: ENVELOPE + LETTER ── -->
+
 <div id="stage">
   <p id="tagline">✦ &nbsp; A letter, written from the heart &nbsp; ✦</p>
 
@@ -343,22 +446,53 @@ body::after {
 </div>
 
 <!-- Letter card -->
+
 <div id="letter-card" aria-live="polite">
   <div class="lc">
     <p class="lc-date" id="lc-date"></p>
     <p class="lc-sal">Dear Sweetheart,</p>
     <p class="lc-body">
-      I sincerely apologize for the pain I have caused you on Sunday.
-      I have been having a hard time knowing that I hurt you.
-      You know I love you so much, and it hurts me seeing you hurt.
-      This will not happen again. I will do my best to make things right,
-      so please let me do it right.<br><br>
-      Please accept my apology.
-    </p>
-    <p class="lc-sign">
-      Sincerely,
-      <span class="lc-sig">Clark Kent</span>
-    </p>
+      I'm really sorry for hurting you last Sunday. Knowing that I caused you pain has been weighing on me a lot. Since we stopped talking, I honestly haven't felt like myself. It's been hard to focus on work or anything because I keep thinking about what happened.<br><br>
+
+```
+  You know how much I love you, and it hurts me knowing that I hurt you. I truly regret it, and I promise I will be more aware of your feelings. I never want to make you feel that way again.<br><br>
+
+  These past days I've been thinking about you a lot. Every night before I sleep, you're on my mind and I keep wishing I could take back what happened.<br><br>
+
+  Wherever I go, I see your face in my mind. Whatever I do, I think of you.<br><br>
+
+  You are my partner in life and my wife <em>(very soon)</em>. Let's not stand against each other. Let's face our problems together. Sometimes the world may push us against each other, but our love should always be stronger.<br><br>
+
+  I am sincerely sorry.<br><br>
+
+  I really hope you can accept my apology and give me the chance to make things right.
+</p>
+<p class="lc-sign">
+  With love,
+  <span class="lc-sig">Clark Kent ❤️</span>
+</p>
+
+<!-- Question -->
+<div class="lc-question" id="lc-question">
+  <p class="question-text">Do you accept my apology? 🥺</p>
+  <div class="btn-row" id="btn-row">
+    <button id="btn-yes">Yes 🥰</button>
+    <button id="btn-no">No 😤</button>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ── CELEBRATE SCREEN ── -->
+
+<div id="celebrate-screen">
+  <canvas id="confetti-canvas"></canvas>
+  <div id="celebrate-msg">
+    <p class="cel-top">YESSSSSS!!! 🥹</p>
+    <p class="cel-sub">I'm very blessed to have you everyday!</p>
+    <p class="cel-sig">— Clark Kent 💕</p>
   </div>
 </div>
 
@@ -456,6 +590,8 @@ function openEnvelope() {
     gsap.to('.lc-sal',   { opacity: 1, y: 0, duration: .6, delay: .5 });
     gsap.to('.lc-body',  { opacity: 1, y: 0, duration: .7, delay: .7 });
     gsap.to('.lc-sign',  { opacity: 1, y: 0, duration: .5, delay: 1.0 });
+    // Show question after all text reveals
+    setTimeout(() => document.getElementById('lc-question').classList.add('show'), 1800);
   }, 650);
 }
 
@@ -494,6 +630,156 @@ function burst(cx, cy, n) {
     }, i * 72);
   }
 }
+
+/* ── Show question after letter reveals ── */
+setTimeout(() => {
+  const q = document.getElementById('lc-question');
+  // Will be triggered after letter is open — guard with a flag
+  window._showQuestion = () => {
+    setTimeout(() => q.classList.add('show'), 600);
+  };
+}, 0);
+
+/* ── YES button ── */
+document.getElementById('btn-yes').addEventListener('click', () => {
+  const cel = document.getElementById('celebrate-screen');
+  cel.classList.add('show');
+  startConfetti();
+  // Massive heart burst
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => burst(innerWidth / 2, innerHeight / 2, 20), i * 300);
+  }
+});
+
+/* ── NO button — runs away, changes label each attempt ── */
+const noLabels = [
+  'No 😤', 'Are you sure? 🤔', 'Think again! 😅', 'Please? 🙏',
+  'Come onnnn 😩', 'I\'m begging 😭', 'WAIT 😱', 'Nooooo 😢',
+  'Just say yes! 😬', 'Fine... 💔', 'I\'ll wait 🥹', 'PLEASEEE 🫶',
+];
+let noCount = 0;
+const btnNo  = document.getElementById('btn-no');
+const btnYes = document.getElementById('btn-yes');
+
+// Place No button correctly once the question section becomes visible
+function initNoBtnPosition() {
+  const row      = document.getElementById('btn-row');
+  const yesRect  = btnYes.getBoundingClientRect();
+  const rowRect  = row.getBoundingClientRect();
+
+  // Place No to the right of Yes, aligned vertically
+  const leftPos = (yesRect.right - rowRect.left) + 12;
+  const topPos  = yesRect.top - rowRect.top;
+
+  btnNo.style.left = leftPos + 'px';
+  btnNo.style.top  = topPos  + 'px';
+}
+
+// Trigger after question fades in (matches the 1800ms delay)
+setTimeout(initNoBtnPosition, 2600);
+
+btnNo.addEventListener('mouseenter', runAway);
+btnNo.addEventListener('touchstart', runAway, { passive: true });
+
+function runAway() {
+  noCount++;
+  // Update label
+  btnNo.textContent = noLabels[Math.min(noCount, noLabels.length - 1)];
+
+  // Shrink slightly over time (min 0.6rem)
+  const newSize = Math.max(0.6, 1.1 - noCount * 0.04);
+  btnNo.style.fontSize = newSize + 'rem';
+
+  // Find a safe random position inside the letter card
+  const card   = document.getElementById('letter-card');
+  const row    = document.getElementById('btn-row');
+  const cRect  = card.getBoundingClientRect();
+  const rRect  = row.getBoundingClientRect();
+
+  // Available area relative to btn-row
+  const maxX = cRect.width  - btnNo.offsetWidth  - 16;
+  const maxY = cRect.height - btnNo.offsetHeight - 16;
+
+  // Offset relative to the row's position inside card
+  const rowOffsetTop  = rRect.top  - cRect.top;
+  const rowOffsetLeft = rRect.left - cRect.left;
+
+  let nx, ny;
+  // Try to keep away from yes button area
+  let attempts = 0;
+  do {
+    nx = Math.random() * maxX;
+    ny = -(rowOffsetTop) + Math.random() * (maxY);
+    attempts++;
+  } while (attempts < 20 && Math.abs(nx - rowOffsetLeft) < 100 && Math.abs(ny) < 60);
+
+  btnNo.style.left = nx + 'px';
+  btnNo.style.top  = ny + 'px';
+
+  // Wiggle animation
+  gsap.fromTo(btnNo,
+    { rotation: -8 },
+    { rotation: 8, duration: .15, yoyo: true, repeat: 3, ease: 'power1.inOut' }
+  );
+}
+
+/* ── Confetti ── */
+function startConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const cctx   = canvas.getContext('2d');
+  canvas.width  = innerWidth;
+  canvas.height = innerHeight;
+  window.addEventListener('resize', () => {
+    canvas.width  = innerWidth;
+    canvas.height = innerHeight;
+  });
+
+  const COLORS = ['#b83058','#e05c80','#c9a76c','#fff','#ffcdd7','#ffd700','#ff6eb4'];
+  const pieces = Array.from({ length: 160 }, () => ({
+    x:    Math.random() * innerWidth,
+    y:    Math.random() * innerHeight - innerHeight,
+    w:    Math.random() * 10 + 5,
+    h:    Math.random() * 6  + 3,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    rot:  Math.random() * Math.PI * 2,
+    rs:   (Math.random() - .5) * .18,
+    sp:   Math.random() * 3.5 + 1.5,
+    dx:   (Math.random() - .5) * 2,
+    shape: Math.random() > .5 ? 'rect' : 'circle',
+  }));
+
+  let running = true;
+  (function cframe() {
+    if (!running) return;
+    cctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.y  += p.sp;
+      p.x  += p.dx;
+      p.rot += p.rs;
+      if (p.y > canvas.height + 20) {
+        p.y = -20;
+        p.x = Math.random() * canvas.width;
+      }
+      cctx.save();
+      cctx.translate(p.x, p.y);
+      cctx.rotate(p.rot);
+      cctx.fillStyle = p.color;
+      if (p.shape === 'circle') {
+        cctx.beginPath();
+        cctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+        cctx.fill();
+      } else {
+        cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      }
+      cctx.restore();
+    });
+    requestAnimationFrame(cframe);
+  })();
+
+  // Stop after 8s
+  setTimeout(() => { running = false; cctx.clearRect(0, 0, canvas.width, canvas.height); }, 8000);
+}
 </script>
+
 </body>
 </html>
