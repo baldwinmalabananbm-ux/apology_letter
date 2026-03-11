@@ -7,67 +7,115 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&family=Lato:wght@300;400&display=swap" rel="stylesheet">
-
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 
 <style>
-/* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Tokens ── */
 :root {
-  --rose:   #b83058;
-  --rose2:  #e05c80;
-  --gold:   #c9a76c;
-  --cream:  #fdf6ec;
-  --ink:    #2a1520;
-  --bg:     #0f0509;
+  --rose:  #b83058;
+  --rose2: #e05c80;
+  --gold:  #c9a76c;
+  --cream: #fdf6ec;
+  --ink:   #2a1520;
+  --bg:    #0f0509;
 }
 
-/* ── Base ── */
 html, body { height: 100%; }
 
 body {
   background: var(--bg);
   font-family: 'Lato', sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   min-height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 
-/* Soft center glow */
+/* Glow + vignette */
 body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background: radial-gradient(ellipse 80% 60% at 50% 54%,
-    rgba(184,48,88,.16) 0%, transparent 68%);
+  content: ''; position: fixed; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 54%, rgba(184,48,88,.16) 0%, transparent 68%);
   pointer-events: none; z-index: 0;
 }
-
-/* Vignette */
 body::after {
-  content: '';
-  position: fixed; inset: 0;
-  background: radial-gradient(ellipse at center,
-    transparent 32%, rgba(5,1,3,.88) 100%);
+  content: ''; position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 32%, rgba(5,1,3,.88) 100%);
   pointer-events: none; z-index: 1;
 }
 
-/* ── Particle canvas ── */
+/* Particles */
 #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
-/* ── Stage ── */
+/* ═══════════════════════════
+   SCREEN 1 — GIF
+═══════════════════════════ */
+#gif-screen {
+  position: fixed; inset: 0;
+  z-index: 30;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1.6rem;
+  background: var(--bg);
+  cursor: pointer;
+  transition: opacity .7s ease;
+}
+#gif-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#sorry-gif {
+  width: min(340px, 82vw);
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(184,48,88,.35), 0 0 120px rgba(184,48,88,.15);
+  animation: glow-pulse 2.8s ease-in-out infinite;
+  display: block;
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 40px rgba(184,48,88,.3), 0 0 80px rgba(184,48,88,.1); }
+  50%       { box-shadow: 0 0 70px rgba(184,48,88,.55), 0 0 140px rgba(184,48,88,.22); }
+}
+
+/* Bouncing tap instruction */
+#tap-hint {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: 1rem;
+  color: rgba(255,255,255,.5); letter-spacing: .16em;
+  display: flex; align-items: center; gap: .6rem;
+  animation: bounce-hint 1.8s ease-in-out infinite;
+}
+@keyframes bounce-hint {
+  0%, 100% { transform: translateY(0); opacity: .5; }
+  50%       { transform: translateY(-6px); opacity: 1; }
+}
+
+.tap-icon {
+  font-size: 1.3rem;
+  animation: tap-wiggle 1.8s ease-in-out infinite;
+}
+@keyframes tap-wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  30%       { transform: rotate(-15deg) scale(1.2); }
+  60%       { transform: rotate(10deg) scale(1.1); }
+}
+
+/* ═══════════════════════════
+   SCREEN 2 — ENVELOPE
+═══════════════════════════ */
 #stage {
   position: relative; z-index: 10;
   display: flex; flex-direction: column;
   align-items: center; gap: 2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .8s ease;
+}
+#stage.visible {
+  opacity: 1;
+  pointer-events: all;
 }
 
-/* ── Tagline ── */
 #tagline {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic; font-size: 1rem;
@@ -75,37 +123,27 @@ body::after {
   opacity: 0;
 }
 
-/* ── Hint ── */
 #hint {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic; font-size: .88rem;
   color: rgba(255,255,255,.28); letter-spacing: .14em;
-  opacity: 0; transition: opacity .5s;
+  opacity: 0;
+  transition: opacity .4s;
+  display: flex; align-items: center; gap: .5rem;
 }
 #hint.gone { opacity: 0 !important; pointer-events: none; }
 
-/* ── Reply button ── */
-#reply-btn {
-  padding: .62rem 2.4rem;
-  border: 1.5px solid var(--gold);
-  background: transparent; color: var(--gold);
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.05rem; letter-spacing: .14em;
-  border-radius: 30px; cursor: pointer;
-  opacity: 0; pointer-events: none;
-  transform: translateY(10px);
-  transition: background .3s, color .3s, opacity .5s, transform .5s;
+.hint-icon {
+  font-size: 1.1rem;
+  animation: tap-wiggle 2s ease-in-out infinite;
 }
-#reply-btn.show { opacity: 1; pointer-events: all; transform: translateY(0); }
-#reply-btn:hover { background: var(--gold); color: var(--bg); }
 
-/* ════════════════════════════════
+/* ═══════════════════════════
    ENVELOPE
-════════════════════════════════ */
+═══════════════════════════ */
 #env-scene {
   position: relative;
-  width: 400px;
-  height: 270px;
+  width: 400px; height: 270px;
   perspective: 1200px;
 }
 
@@ -118,7 +156,6 @@ body::after {
 }
 #envelope.no-tilt { pointer-events: none; }
 
-/* Envelope body */
 .env-body {
   position: absolute; inset: 0;
   border-radius: 8px;
@@ -126,17 +163,14 @@ body::after {
   border: 1.5px solid rgba(184,48,88,.22);
   overflow: hidden;
 }
-/* V-crease lines */
 .env-body::before, .env-body::after {
   content: ''; position: absolute;
   height: 1.5px; width: 150%; left: -25%;
-  background: rgba(184,48,88,.1);
-  top: 56%;
+  background: rgba(184,48,88,.1); top: 56%;
 }
 .env-body::before { transform: rotate(-35deg); }
 .env-body::after  { transform: rotate(35deg); }
 
-/* Flap */
 #flap {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 56%;
@@ -153,8 +187,7 @@ body::after {
 .flap-f {
   background: linear-gradient(172deg, #fde8ee 0%, #ffcdd7 100%);
   border: 1.5px solid rgba(184,48,88,.18);
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  border-bottom: none; border-radius: 8px 8px 0 0;
 }
 .flap-b {
   background: linear-gradient(172deg, #f7bec9 0%, #f0aab6 100%);
@@ -162,33 +195,28 @@ body::after {
 }
 #envelope.opened #flap { transform: rotateX(-180deg); }
 
-/* Wax seal */
 #seal {
   position: absolute; bottom: 20px; left: 50%;
   transform: translateX(-50%);
   width: 54px; height: 54px;
   background: radial-gradient(circle at 38% 36%, #e05c7a, var(--rose) 58%, #721430);
   border-radius: 50%;
-  box-shadow: 0 4px 16px rgba(184,48,88,.55),
-              inset 0 2px 5px rgba(255,255,255,.22);
+  box-shadow: 0 4px 16px rgba(184,48,88,.55), inset 0 2px 5px rgba(255,255,255,.22);
   display: flex; align-items: center; justify-content: center;
   font-size: 1.55rem; z-index: 4;
   transition: transform .3s ease, opacity .35s ease;
 }
 #envelope.opened #seal {
-  opacity: 0;
-  transform: translateX(-50%) scale(.3);
-  pointer-events: none;
+  opacity: 0; transform: translateX(-50%) scale(.3); pointer-events: none;
 }
 
-/* ════════════════════════════════
-   LETTER CARD  (floats above envelope)
-════════════════════════════════ */
+/* ═══════════════════════════
+   LETTER CARD
+═══════════════════════════ */
 #letter-card {
   position: fixed;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%) translateY(40px) scale(.92);
-  transform-origin: center center;
+  transform: translate(-50%, -50%) translateY(30px) scale(.94);
 
   width: 520px;
   max-width: 92vw;
@@ -198,30 +226,24 @@ body::after {
   border-radius: 6px;
   padding: 2.4rem 2.2rem 2rem 3.1rem;
 
-  box-shadow: 0 10px 60px rgba(10,3,8,.5),
-              0 2px 8px rgba(184,48,88,.15);
+  box-shadow: 0 10px 60px rgba(10,3,8,.5), 0 2px 8px rgba(184,48,88,.15);
 
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--rose2) transparent;
 
-  opacity: 0;
-  pointer-events: none;
-  z-index: 20;
+  opacity: 0; pointer-events: none;
+  z-index: 25;
 
-  transition: transform .8s cubic-bezier(.22,1,.36,1),
-              opacity .6s ease;
+  transition: transform .8s cubic-bezier(.22,1,.36,1), opacity .6s ease;
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
-
-/* Show state — perfectly centered */
 #letter-card.visible {
-  opacity: 1;
-  pointer-events: all;
-  transform: translate(-50%, -50%) translateY(0) scale(1);
+  opacity: 1; pointer-events: all;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* Ruled lines */
@@ -237,37 +259,31 @@ body::after {
 #letter-card::after {
   content: ''; position: absolute;
   top: 0; bottom: 0; left: 48px;
-  width: 1.5px;
-  background: rgba(184,48,88,.17);
+  width: 1.5px; background: rgba(184,48,88,.17);
   pointer-events: none;
 }
 
-/* Letter content */
 .lc { position: relative; z-index: 1; }
 
 .lc-date {
   font-family: 'Cormorant Garamond', serif;
   font-size: .8rem; color: var(--rose);
-  letter-spacing: .07em; margin-bottom: 1rem;
-  opacity: 0;
+  letter-spacing: .07em; margin-bottom: 1rem; opacity: 0;
 }
 .lc-sal {
   font-family: 'Pinyon Script', cursive;
   font-size: 2rem; color: var(--rose);
-  line-height: 1.15; margin-bottom: .85rem;
-  opacity: 0;
+  line-height: 1.15; margin-bottom: .85rem; opacity: 0;
 }
 .lc-body {
   font-family: 'Cormorant Garamond', serif;
   font-size: 1.1rem; color: var(--ink);
-  line-height: 1.9; font-weight: 400;
-  opacity: 0;
+  line-height: 1.9; font-weight: 400; opacity: 0;
 }
 .lc-sign {
   margin-top: 1.5rem;
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1rem; color: var(--ink);
-  opacity: 0;
+  font-size: 1rem; color: var(--ink); opacity: 0;
 }
 .lc-sig {
   font-family: 'Pinyon Script', cursive;
@@ -275,107 +291,12 @@ body::after {
   display: block; margin-top: .1rem;
 }
 
-/* scrollbar webkit */
 #letter-card::-webkit-scrollbar { width: 5px; }
 #letter-card::-webkit-scrollbar-thumb { background: var(--rose2); border-radius: 3px; }
 
-/* ════════════════════════════════
-   MODAL
-════════════════════════════════ */
-#modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(5,1,3,.84);
-  backdrop-filter: blur(10px);
-  z-index: 50;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none;
-  transition: opacity .35s;
-}
-#modal-overlay.active { opacity: 1; pointer-events: all; }
-
-#modal {
-  background: var(--cream);
-  border-radius: 12px;
-  padding: 2.8rem 2.5rem 2.2rem;
-  width: min(500px, 92vw);
-  box-shadow: 0 36px 100px rgba(5,1,3,.65);
-  transform: translateY(24px) scale(.96);
-  transition: transform .35s cubic-bezier(.22,1,.36,1);
-}
-#modal-overlay.active #modal { transform: none; }
-
-#modal h2 {
-  font-family: 'Pinyon Script', cursive;
-  font-size: 2.2rem; color: var(--rose);
-  margin-bottom: 1.5rem;
-}
-#modal label {
-  display: block;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: .75rem; letter-spacing: .11em;
-  color: #aaa; margin-bottom: .38rem;
-  text-transform: uppercase;
-}
-#reply-name, #reply-msg {
-  width: 100%;
-  border: 1.5px solid rgba(184,48,88,.22);
-  border-radius: 7px;
-  padding: .88rem 1rem;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.08rem; color: var(--ink);
-  background: #fff9f0;
-  outline: none;
-  transition: border-color .22s, box-shadow .22s;
-  margin-bottom: 1.15rem;
-  -webkit-font-smoothing: antialiased;
-}
-#reply-name:focus, #reply-msg:focus {
-  border-color: var(--rose);
-  box-shadow: 0 0 0 3px rgba(184,48,88,.1);
-}
-#reply-msg { min-height: 130px; resize: vertical; }
-
-.modal-row { display: flex; gap: .8rem; justify-content: flex-end; }
-
-.btn-cancel {
-  padding: .58rem 1.65rem;
-  border: 1.5px solid #ccc; background: transparent;
-  color: #aaa; border-radius: 24px; cursor: pointer;
-  font-family: 'Lato', sans-serif; font-size: .85rem;
-  transition: border-color .2s, color .2s;
-}
-.btn-cancel:hover { border-color: #999; color: #666; }
-
-.btn-send {
-  padding: .58rem 2rem;
-  border: none; background: var(--rose); color: #fff;
-  border-radius: 24px; cursor: pointer;
-  font-family: 'Lato', sans-serif; font-size: .85rem;
-  transition: background .25s, transform .15s;
-}
-.btn-send:hover { background: var(--rose2); transform: translateY(-1px); }
-.btn-send:disabled { background: #ccc; cursor: not-allowed; transform: none; }
-
-/* ════════════════════════════════
-   TOAST
-════════════════════════════════ */
-#toast {
-  position: fixed; bottom: 2.5rem; left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: #1c0b12; color: #fff;
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic; font-size: 1rem;
-  padding: .8rem 2.2rem; border-radius: 30px;
-  border: 1px solid rgba(184,48,88,.28);
-  opacity: 0; pointer-events: none;
-  transition: opacity .4s, transform .4s;
-  z-index: 60;
-}
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ════════════════════════════════
+/* ═══════════════════════════
    FLOATING HEARTS
-════════════════════════════════ */
+═══════════════════════════ */
 .hpop {
   position: fixed; pointer-events: none;
   opacity: 0; z-index: 20;
@@ -391,13 +312,20 @@ body::after {
 
 <canvas id="bg-canvas"></canvas>
 
+<!-- ── SCREEN 1: GIF ── -->
+<div id="gif-screen">
+  <img id="sorry-gif" src="SORRY.gif" alt="Sorry">
+  <p id="tap-hint">
+    <span class="tap-icon">👆</span>
+    tap to open
+  </p>
+</div>
+
+<!-- ── SCREEN 2: ENVELOPE + LETTER ── -->
 <div id="stage">
   <p id="tagline">✦ &nbsp; A letter, written from the heart &nbsp; ✦</p>
 
-  <!-- Envelope + floating letter card share this container -->
   <div id="env-scene">
-
-    <!-- Envelope -->
     <div id="envelope" role="button" aria-label="Open the letter" tabindex="0">
       <div class="env-body"></div>
       <div id="flap">
@@ -406,63 +334,36 @@ body::after {
       </div>
       <div id="seal">💌</div>
     </div>
+  </div>
 
-    <!-- Letter card — rises out of envelope -->
-    <div id="letter-card" aria-live="polite">
-      <div class="lc">
-        <p class="lc-date" id="lc-date"></p>
-        <p class="lc-sal">Dear Sweetheart,</p>
-        <p class="lc-body">
-          I sincerely apologize for the pain I have caused you on Sunday.
-          I have been having a hard time knowing that I hurt you.
-          You know I love you so much, and it hurts me seeing you hurt.
-          This will not happen again. I will do my best to make things right,
-          so please let me do it right.<br><br>
-          Please accept my apology.
-        </p>
-        <p class="lc-sign">
-          Sincerely,
-          <span class="lc-sig">Clark Kent</span>
-        </p>
-      </div>
-    </div>
-
-  </div><!-- /env-scene -->
-
-  <p id="hint">✦ &nbsp; click to open &nbsp; ✦</p>
-  <button id="reply-btn">Write a Reply &nbsp;✉</button>
+  <p id="hint">
+    <span class="hint-icon">👆</span>
+    click the envelope to open
+  </p>
 </div>
 
-<!-- Modal -->
-<div id="modal-overlay" role="dialog" aria-modal="true">
-  <div id="modal">
-    <h2>Your Reply</h2>
-    <label for="reply-name">Your Name</label>
-    <input type="text" id="reply-name" placeholder="e.g. Lois Lane" autocomplete="off">
-    <label for="reply-msg">Your Message</label>
-    <textarea id="reply-msg" placeholder="Write your reply here…"></textarea>
-    <div class="modal-row">
-      <button class="btn-cancel" id="btn-cancel">Cancel</button>
-      <button class="btn-send"   id="btn-send">Send Reply 💌</button>
-    </div>
+<!-- Letter card -->
+<div id="letter-card" aria-live="polite">
+  <div class="lc">
+    <p class="lc-date" id="lc-date"></p>
+    <p class="lc-sal">Dear Sweetheart,</p>
+    <p class="lc-body">
+      I sincerely apologize for the pain I have caused you on Sunday.
+      I have been having a hard time knowing that I hurt you.
+      You know I love you so much, and it hurts me seeing you hurt.
+      This will not happen again. I will do my best to make things right,
+      so please let me do it right.<br><br>
+      Please accept my apology.
+    </p>
+    <p class="lc-sign">
+      Sincerely,
+      <span class="lc-sig">Clark Kent</span>
+    </p>
   </div>
 </div>
 
-<div id="toast"></div>
-
 <script>
-/* ═══════════════════════════════════════════
-   EmailJS  —  replace the 3 values below
-   Docs: https://www.emailjs.com
-═══════════════════════════════════════════ */
-const EJS_KEY      = 'YOUR_PUBLIC_KEY';    // Account → API Keys
-const EJS_SERVICE  = 'YOUR_SERVICE_ID';   // Email Services tab
-const EJS_TEMPLATE = 'YOUR_TEMPLATE_ID';  // Email Templates tab
-const RECIPIENT    = 'baldwinmalabanan.bm@gmail.com';
-
-emailjs.init(EJS_KEY);
-
-/* ─── Particle canvas ─── */
+/* ── Particles ── */
 const cvs = document.getElementById('bg-canvas');
 const ctx  = cvs.getContext('2d');
 let W, H;
@@ -471,13 +372,13 @@ setSize();
 window.addEventListener('resize', setSize);
 
 const SYM = ['♥','✦','✿','·','✧'];
-const PTS = Array.from({ length: 65 }, () => newPt(true));
+const PTS = Array.from({ length: 60 }, () => newPt(true));
 
 function newPt(spread) {
   return {
-    x:  Math.random() * (W || 900),
-    y:  spread ? Math.random() * (H || 650) : (H || 650) + 12,
-    s:  SYM[Math.floor(Math.random() * SYM.length)],
+    x: Math.random() * (W || 900),
+    y: spread ? Math.random() * (H || 650) : (H || 650) + 12,
+    s: SYM[Math.floor(Math.random() * SYM.length)],
     sz: Math.random() * 13 + 6,
     sp: Math.random() * .48 + .16,
     a:  Math.random() * .42 + .07,
@@ -504,20 +405,39 @@ function newPt(spread) {
   requestAnimationFrame(frame);
 })();
 
-/* ─── Intro animations ─── */
-gsap.to('#tagline', { opacity: 1, y: 0, duration: 1.3, ease: 'power2.out', delay: .4 });
-gsap.to('#hint',    { opacity: 1, duration: 1, delay: 1.2 });
-
+/* ── Set date ── */
 document.getElementById('lc-date').textContent =
   new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
 
-/* ─── Envelope open ─── */
-const env      = document.getElementById('envelope');
-const hintEl   = document.getElementById('hint');
-const card     = document.getElementById('letter-card');
-const replyBtn = document.getElementById('reply-btn');
+/* ── STEP 1: tap GIF → show envelope ── */
+const gifScreen = document.getElementById('gif-screen');
+const stage     = document.getElementById('stage');
+const hintEl    = document.getElementById('hint');
+
+gifScreen.addEventListener('click', () => {
+  gifScreen.classList.add('fade-out');
+
+  setTimeout(() => {
+    gifScreen.style.display = 'none';
+    stage.classList.add('visible');
+
+    // Animate tagline + hint in
+    gsap.to('#tagline', { opacity: 1, y: 0, duration: 1.1, ease: 'power2.out', delay: .2 });
+    gsap.to('#hint',    { opacity: 1, duration: .9, delay: .7 });
+
+    // Envelope entrance pop
+    gsap.from('#envelope', {
+      scale: .75, opacity: 0, duration: .8, ease: 'back.out(1.6)', delay: .3
+    });
+  }, 700);
+});
+
+/* ── STEP 2: click envelope → open & show letter ── */
+const env  = document.getElementById('envelope');
+const card = document.getElementById('letter-card');
+const scene = document.getElementById('env-scene');
 let opened = false;
 
 function openEnvelope() {
@@ -527,18 +447,16 @@ function openEnvelope() {
   env.classList.add('opened', 'no-tilt');
   hintEl.classList.add('gone');
 
-  // After flap opens (≈0.7s), show letter card
+  burst(innerWidth / 2, innerHeight * .48, 14);
+
+  // Wait for flap to open then show letter card
   setTimeout(() => {
     card.classList.add('visible');
-    // Stagger letter text via GSAP
-    gsap.to('.lc-date',  { opacity: 1, y: 0, duration: .5, delay: .35 });
-    gsap.to('.lc-sal',   { opacity: 1, y: 0, duration: .6, delay: .55 });
-    gsap.to('.lc-body',  { opacity: 1, y: 0, duration: .7, delay: .75 });
-    gsap.to('.lc-sign',  { opacity: 1, y: 0, duration: .5, delay: 1.05 });
-  }, 600);
-
-  burst(innerWidth / 2, innerHeight * .48, 14);
-  setTimeout(() => replyBtn.classList.add('show'), 2500);
+    gsap.to('.lc-date',  { opacity: 1, y: 0, duration: .5, delay: .3 });
+    gsap.to('.lc-sal',   { opacity: 1, y: 0, duration: .6, delay: .5 });
+    gsap.to('.lc-body',  { opacity: 1, y: 0, duration: .7, delay: .7 });
+    gsap.to('.lc-sign',  { opacity: 1, y: 0, duration: .5, delay: 1.0 });
+  }, 650);
 }
 
 env.addEventListener('click', openEnvelope);
@@ -546,23 +464,21 @@ env.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') openEnvelope();
 });
 
-/* 3-D hover tilt */
-const scene = document.getElementById('env-scene');
+/* 3-D tilt */
 scene.addEventListener('mousemove', e => {
   if (opened) return;
   const r  = env.getBoundingClientRect();
   const dx = (e.clientX - r.left - r.width  / 2) / (r.width  / 2);
   const dy = (e.clientY - r.top  - r.height / 2) / (r.height / 2);
   gsap.to(env, { rotateY: dx * 11, rotateX: -dy * 9,
-                 duration: .4, ease: 'power2.out',
-                 transformStyle: 'preserve-3d' });
+    duration: .4, ease: 'power2.out', transformStyle: 'preserve-3d' });
 });
 scene.addEventListener('mouseleave', () => {
   if (!opened) gsap.to(env, { rotateY: 0, rotateX: 0,
     duration: .65, ease: 'elastic.out(1,.55)' });
 });
 
-/* ─── Heart burst ─── */
+/* ── Heart burst ── */
 function burst(cx, cy, n) {
   const pool = ['💕','💗','💖','♥','💓','🌹'];
   for (let i = 0; i < n; i++) {
@@ -578,62 +494,6 @@ function burst(cx, cy, n) {
     }, i * 72);
   }
 }
-
-/* ─── Modal ─── */
-const overlay   = document.getElementById('modal-overlay');
-const nameInput = document.getElementById('reply-name');
-const msgInput  = document.getElementById('reply-msg');
-const sendBtn   = document.getElementById('btn-send');
-const toast     = document.getElementById('toast');
-
-replyBtn.addEventListener('click', () => {
-  overlay.classList.add('active');
-  nameInput.focus();
-});
-document.getElementById('btn-cancel').addEventListener('click', closeModal);
-overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-
-function closeModal() { overlay.classList.remove('active'); }
-
-function showToast(msg, dur = 3800) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), dur);
-}
-
-sendBtn.addEventListener('click', async () => {
-  const name = nameInput.value.trim();
-  const msg  = msgInput.value.trim();
-
-  nameInput.style.borderColor = name ? '' : '#b83058';
-  msgInput.style.borderColor  = msg  ? '' : '#b83058';
-  if (!name) { nameInput.focus(); return; }
-  if (!msg)  { msgInput.focus();  return; }
-
-  sendBtn.disabled    = true;
-  sendBtn.textContent = 'Sending…';
-
-  try {
-    await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
-      to_email:  RECIPIENT,
-      from_name: name,
-      message:   msg,
-    });
-
-    closeModal();
-    nameInput.value = '';
-    msgInput.value  = '';
-    showToast('Reply sent with love 💕');
-    burst(innerWidth / 2, innerHeight * .62, 22);
-
-  } catch (err) {
-    console.error('EmailJS error:', err);
-    showToast('⚠️ Could not send — check EmailJS config', 5000);
-  } finally {
-    sendBtn.disabled    = false;
-    sendBtn.textContent = 'Send Reply 💌';
-  }
-});
 </script>
 </body>
 </html>
