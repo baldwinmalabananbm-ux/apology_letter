@@ -5,258 +5,289 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Apology — For You</title>
 
-<!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Pinyon+Script&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&family=Lato:wght@300;400&display=swap" rel="stylesheet">
 
-<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
-<!-- GSAP -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 
 <style>
+/* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Tokens ── */
 :root {
-  --rose:    #b83058;
-  --rose-lt: #e05c80;
-  --gold:    #c9a76c;
-  --cream:   #fdf6ec;
-  --ink:     #2a1520;
-  --bg:      #12060c;
-  --env-w:   380px;
-  --env-h:   260px;
+  --rose:   #b83058;
+  --rose2:  #e05c80;
+  --gold:   #c9a76c;
+  --cream:  #fdf6ec;
+  --ink:    #2a1520;
+  --bg:     #0f0509;
 }
 
+/* ── Base ── */
 html, body { height: 100%; }
 
 body {
   background: var(--bg);
+  font-family: 'Lato', sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   overflow: hidden;
-  position: relative;
-  font-family: 'Lato', sans-serif;
 }
 
+/* Soft center glow */
 body::before {
   content: '';
   position: fixed; inset: 0;
-  background: radial-gradient(ellipse 70% 60% at 50% 55%, rgba(184,48,88,.13) 0%, transparent 70%);
+  background: radial-gradient(ellipse 80% 60% at 50% 54%,
+    rgba(184,48,88,.16) 0%, transparent 68%);
   pointer-events: none; z-index: 0;
 }
+
+/* Vignette */
 body::after {
   content: '';
   position: fixed; inset: 0;
-  background: radial-gradient(ellipse at center, transparent 35%, rgba(8,1,5,.82) 100%);
+  background: radial-gradient(ellipse at center,
+    transparent 32%, rgba(5,1,3,.88) 100%);
   pointer-events: none; z-index: 1;
 }
 
-canvas#bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+/* ── Particle canvas ── */
+#bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
-/* Stage */
+/* ── Stage ── */
 #stage {
   position: relative; z-index: 10;
   display: flex; flex-direction: column;
-  align-items: center; gap: 1.8rem;
+  align-items: center; gap: 2rem;
 }
 
+/* ── Tagline ── */
 #tagline {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic; font-size: 1rem;
-  color: var(--gold); letter-spacing: .14em;
-  opacity: 0; transform: translateY(10px);
-}
-
-/* Scene — grows on open */
-#scene {
-  position: relative;
-  width: var(--env-w);
-  height: var(--env-h);
-  transition: width .85s cubic-bezier(.22,1,.36,1),
-              height .85s cubic-bezier(.22,1,.36,1);
-  perspective: 1400px;
-}
-#scene.opened {
-  width: min(620px, 92vw);
-  height: min(540px, 80vh);
-}
-
-/* Envelope shell */
-#envelope {
-  position: absolute; inset: 0;
-  cursor: pointer;
-  transform-style: preserve-3d;
-  filter: drop-shadow(0 20px 50px rgba(184,48,88,.28));
-  transition: filter .4s;
-}
-#envelope:hover:not(.no-hover) {
-  filter: drop-shadow(0 28px 70px rgba(184,48,88,.48));
-}
-
-.env-body {
-  position: absolute; inset: 0;
-  border-radius: 8px;
-  background: linear-gradient(150deg, #fff0f3 0%, #ffdde5 100%);
-  border: 1.5px solid rgba(184,48,88,.2);
-}
-/* V-fold crease lines */
-.env-body::before, .env-body::after {
-  content: ''; position: absolute;
-  height: 1.5px; width: 145%; left: -22%;
-  background: rgba(184,48,88,.09);
-}
-.env-body::before { top: 58%;  transform: rotate(-34deg); }
-.env-body::after  { top: 58%;  transform: rotate(34deg);  }
-
-/* Wax seal */
-#seal {
-  position: absolute; bottom: 18px; left: 50%;
-  transform: translateX(-50%);
-  width: 52px; height: 52px;
-  background: radial-gradient(circle at 38% 36%, #e0607c, var(--rose) 55%, #7a1530);
-  border-radius: 50%;
-  box-shadow: 0 4px 14px rgba(184,48,88,.55), inset 0 2px 4px rgba(255,255,255,.2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; z-index: 4;
-  transition: transform .35s ease, opacity .4s ease;
-}
-#scene.opened #seal { opacity: 0; transform: translateX(-50%) scale(.35); pointer-events: none; }
-
-/* Flap */
-#flap {
-  position: absolute; top: 0; left: 0;
-  width: 100%; height: 55%;
-  transform-origin: top center;
-  transform-style: preserve-3d;
-  transform: rotateX(0deg);
-  transition: transform .75s cubic-bezier(.4,0,.2,1);
-  z-index: 5;
-}
-.flap-front {
-  position: absolute; inset: 0;
-  background: linear-gradient(175deg, #ffe4ea 0%, #ffd0d9 100%);
-  border: 1.5px solid rgba(184,48,88,.2);
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-  clip-path: polygon(0 0, 100% 0, 50% 80%);
-  backface-visibility: hidden;
-}
-.flap-back {
-  position: absolute; inset: 0;
-  background: linear-gradient(175deg, #f5bfc9 0%, #f0aab8 100%);
-  clip-path: polygon(0 0, 100% 0, 50% 80%);
-  backface-visibility: hidden;
-  transform: rotateX(180deg);
-}
-#scene.opened #flap { transform: rotateX(-180deg); }
-
-/* Letter */
-#letter {
-  position: absolute;
-  left: 6%; right: 6%;
-  top: 8%; bottom: 8%;
-  background: var(--cream);
-  border-radius: 4px;
-  padding: 2.25rem 2rem 2rem 3rem;
-  box-shadow: 0 8px 40px rgba(26,10,18,.22);
-  transform: translateY(78%) scale(.94);
-  transform-origin: bottom center;
-  transition: transform .85s cubic-bezier(.22,1,.36,1) .12s;
-  z-index: 3;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--rose-lt) transparent;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-#scene.opened #letter { transform: translateY(-6%) scale(1); }
-
-/* Ruled lines */
-#letter::before {
-  content: ''; position: absolute; inset: 0; border-radius: 4px;
-  background: repeating-linear-gradient(
-    transparent, transparent 29px,
-    rgba(184,48,88,.065) 29px, rgba(184,48,88,.065) 30px
-  );
-  pointer-events: none;
-}
-/* Red margin */
-#letter::after {
-  content: ''; position: absolute;
-  top: 0; bottom: 0; left: 46px;
-  width: 1.5px; background: rgba(184,48,88,.18);
-  pointer-events: none;
-}
-
-.ltr-date {
-  position: relative;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: .82rem; color: var(--rose);
-  letter-spacing: .07em; margin-bottom: 1.1rem;
+  color: var(--gold); letter-spacing: .16em;
   opacity: 0;
 }
-.ltr-salutation {
-  position: relative;
-  font-family: 'Pinyon Script', cursive;
-  font-size: 1.9rem; color: var(--rose);
-  line-height: 1.2; margin-bottom: .9rem;
-  opacity: 0;
-}
-.ltr-body {
-  position: relative;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.08rem; color: var(--ink);
-  line-height: 1.85; font-weight: 400;
-  opacity: 0;
-}
-.ltr-sign {
-  position: relative;
-  margin-top: 1.4rem;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1rem; color: var(--ink);
-  opacity: 0;
-}
-.ltr-signature {
-  font-family: 'Pinyon Script', cursive;
-  font-size: 2.1rem; color: var(--rose);
-  display: block; margin-top: .1rem;
-}
 
-/* Hint */
+/* ── Hint ── */
 #hint {
   font-family: 'Cormorant Garamond', serif;
-  font-style: italic; font-size: .9rem;
-  color: rgba(255,255,255,.3); letter-spacing: .12em;
+  font-style: italic; font-size: .88rem;
+  color: rgba(255,255,255,.28); letter-spacing: .14em;
   opacity: 0; transition: opacity .5s;
 }
 #hint.gone { opacity: 0 !important; pointer-events: none; }
 
-/* Reply button */
+/* ── Reply button ── */
 #reply-btn {
-  padding: .65rem 2.4rem;
+  padding: .62rem 2.4rem;
   border: 1.5px solid var(--gold);
   background: transparent; color: var(--gold);
   font-family: 'Cormorant Garamond', serif;
   font-size: 1.05rem; letter-spacing: .14em;
   border-radius: 30px; cursor: pointer;
   opacity: 0; pointer-events: none;
-  transform: translateY(8px);
+  transform: translateY(10px);
   transition: background .3s, color .3s, opacity .5s, transform .5s;
 }
 #reply-btn.show { opacity: 1; pointer-events: all; transform: translateY(0); }
 #reply-btn:hover { background: var(--gold); color: var(--bg); }
 
-/* Modal */
+/* ════════════════════════════════
+   ENVELOPE
+════════════════════════════════ */
+#env-scene {
+  position: relative;
+  width: 400px;
+  height: 270px;
+  perspective: 1200px;
+}
+
+#envelope {
+  position: absolute; inset: 0;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 16px 44px rgba(184,48,88,.3));
+  transition: filter .35s;
+}
+#envelope.no-tilt { pointer-events: none; }
+
+/* Envelope body */
+.env-body {
+  position: absolute; inset: 0;
+  border-radius: 8px;
+  background: linear-gradient(148deg, #fff2f5 0%, #ffdde6 100%);
+  border: 1.5px solid rgba(184,48,88,.22);
+  overflow: hidden;
+}
+/* V-crease lines */
+.env-body::before, .env-body::after {
+  content: ''; position: absolute;
+  height: 1.5px; width: 150%; left: -25%;
+  background: rgba(184,48,88,.1);
+  top: 56%;
+}
+.env-body::before { transform: rotate(-35deg); }
+.env-body::after  { transform: rotate(35deg); }
+
+/* Flap */
+#flap {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 56%;
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  transition: transform .72s cubic-bezier(.42,0,.22,1);
+  z-index: 5;
+}
+.flap-f, .flap-b {
+  position: absolute; inset: 0;
+  clip-path: polygon(0 0, 100% 0, 50% 82%);
+  backface-visibility: hidden;
+}
+.flap-f {
+  background: linear-gradient(172deg, #fde8ee 0%, #ffcdd7 100%);
+  border: 1.5px solid rgba(184,48,88,.18);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+.flap-b {
+  background: linear-gradient(172deg, #f7bec9 0%, #f0aab6 100%);
+  transform: rotateX(180deg);
+}
+#envelope.opened #flap { transform: rotateX(-180deg); }
+
+/* Wax seal */
+#seal {
+  position: absolute; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  width: 54px; height: 54px;
+  background: radial-gradient(circle at 38% 36%, #e05c7a, var(--rose) 58%, #721430);
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(184,48,88,.55),
+              inset 0 2px 5px rgba(255,255,255,.22);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.55rem; z-index: 4;
+  transition: transform .3s ease, opacity .35s ease;
+}
+#envelope.opened #seal {
+  opacity: 0;
+  transform: translateX(-50%) scale(.3);
+  pointer-events: none;
+}
+
+/* ════════════════════════════════
+   LETTER CARD  (floats above envelope)
+════════════════════════════════ */
+#letter-card {
+  position: absolute;
+  /* centered on the envelope scene */
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) translateY(60px) scale(.88);
+  transform-origin: center bottom;
+
+  width: 520px;
+  max-width: 92vw;
+  max-height: 70vh;
+
+  background: var(--cream);
+  border-radius: 6px;
+  padding: 2.4rem 2.2rem 2rem 3.1rem;
+
+  box-shadow: 0 10px 50px rgba(10,3,8,.38),
+              0 2px 8px rgba(184,48,88,.12);
+
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rose2) transparent;
+
+  opacity: 0;
+  pointer-events: none;
+  z-index: 6;
+
+  transition: transform .8s cubic-bezier(.22,1,.36,1),
+              opacity .5s ease;
+
+  /* crisp text */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Show state — card rises above envelope */
+#letter-card.visible {
+  opacity: 1;
+  pointer-events: all;
+  transform: translate(-50%, -50%) translateY(-190px) scale(1);
+}
+
+/* Ruled lines */
+#letter-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: 6px;
+  background: repeating-linear-gradient(
+    transparent, transparent 30px,
+    rgba(184,48,88,.06) 30px, rgba(184,48,88,.06) 31px
+  );
+  pointer-events: none;
+}
+/* Red margin */
+#letter-card::after {
+  content: ''; position: absolute;
+  top: 0; bottom: 0; left: 48px;
+  width: 1.5px;
+  background: rgba(184,48,88,.17);
+  pointer-events: none;
+}
+
+/* Letter content */
+.lc { position: relative; z-index: 1; }
+
+.lc-date {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .8rem; color: var(--rose);
+  letter-spacing: .07em; margin-bottom: 1rem;
+  opacity: 0;
+}
+.lc-sal {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 2rem; color: var(--rose);
+  line-height: 1.15; margin-bottom: .85rem;
+  opacity: 0;
+}
+.lc-body {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem; color: var(--ink);
+  line-height: 1.9; font-weight: 400;
+  opacity: 0;
+}
+.lc-sign {
+  margin-top: 1.5rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; color: var(--ink);
+  opacity: 0;
+}
+.lc-sig {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 2.2rem; color: var(--rose);
+  display: block; margin-top: .1rem;
+}
+
+/* scrollbar webkit */
+#letter-card::-webkit-scrollbar { width: 5px; }
+#letter-card::-webkit-scrollbar-thumb { background: var(--rose2); border-radius: 3px; }
+
+/* ════════════════════════════════
+   MODAL
+════════════════════════════════ */
 #modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(6,1,4,.82);
-  backdrop-filter: blur(8px);
+  background: rgba(5,1,3,.84);
+  backdrop-filter: blur(10px);
   z-index: 50;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
@@ -267,115 +298,123 @@ canvas#bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 #modal {
   background: var(--cream);
   border-radius: 12px;
-  padding: 2.75rem 2.5rem 2.25rem;
+  padding: 2.8rem 2.5rem 2.2rem;
   width: min(500px, 92vw);
-  box-shadow: 0 32px 90px rgba(6,1,4,.6);
-  transform: translateY(22px) scale(.97);
-  transition: transform .35s;
+  box-shadow: 0 36px 100px rgba(5,1,3,.65);
+  transform: translateY(24px) scale(.96);
+  transition: transform .35s cubic-bezier(.22,1,.36,1);
 }
 #modal-overlay.active #modal { transform: none; }
 
 #modal h2 {
   font-family: 'Pinyon Script', cursive;
-  font-size: 2.1rem; color: var(--rose);
-  margin-bottom: 1.4rem;
+  font-size: 2.2rem; color: var(--rose);
+  margin-bottom: 1.5rem;
 }
 #modal label {
   display: block;
   font-family: 'Cormorant Garamond', serif;
-  font-size: .78rem; letter-spacing: .1em;
-  color: #999; margin-bottom: .35rem;
+  font-size: .75rem; letter-spacing: .11em;
+  color: #aaa; margin-bottom: .38rem;
   text-transform: uppercase;
 }
 #reply-name, #reply-msg {
   width: 100%;
-  border: 1.5px solid rgba(184,48,88,.25);
-  border-radius: 6px;
-  padding: .85rem 1rem;
+  border: 1.5px solid rgba(184,48,88,.22);
+  border-radius: 7px;
+  padding: .88rem 1rem;
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.05rem; color: var(--ink);
+  font-size: 1.08rem; color: var(--ink);
   background: #fff9f0;
   outline: none;
-  transition: border-color .25s;
-  margin-bottom: 1.1rem;
+  transition: border-color .22s, box-shadow .22s;
+  margin-bottom: 1.15rem;
   -webkit-font-smoothing: antialiased;
 }
-#reply-name:focus, #reply-msg:focus { border-color: var(--rose); }
+#reply-name:focus, #reply-msg:focus {
+  border-color: var(--rose);
+  box-shadow: 0 0 0 3px rgba(184,48,88,.1);
+}
 #reply-msg { min-height: 130px; resize: vertical; }
 
-.modal-row { display: flex; gap: .75rem; justify-content: flex-end; }
+.modal-row { display: flex; gap: .8rem; justify-content: flex-end; }
 
 .btn-cancel {
-  padding: .58rem 1.6rem;
+  padding: .58rem 1.65rem;
   border: 1.5px solid #ccc; background: transparent;
-  color: #999; border-radius: 24px; cursor: pointer;
+  color: #aaa; border-radius: 24px; cursor: pointer;
   font-family: 'Lato', sans-serif; font-size: .85rem;
   transition: border-color .2s, color .2s;
 }
-.btn-cancel:hover { border-color: #aaa; color: #666; }
+.btn-cancel:hover { border-color: #999; color: #666; }
 
 .btn-send {
-  padding: .58rem 1.9rem;
+  padding: .58rem 2rem;
   border: none; background: var(--rose); color: #fff;
   border-radius: 24px; cursor: pointer;
   font-family: 'Lato', sans-serif; font-size: .85rem;
   transition: background .25s, transform .15s;
 }
-.btn-send:hover { background: var(--rose-lt); transform: translateY(-1px); }
-.btn-send:disabled { background: #bbb; cursor: not-allowed; transform: none; }
+.btn-send:hover { background: var(--rose2); transform: translateY(-1px); }
+.btn-send:disabled { background: #ccc; cursor: not-allowed; transform: none; }
 
-/* Toast */
+/* ════════════════════════════════
+   TOAST
+════════════════════════════════ */
 #toast {
   position: fixed; bottom: 2.5rem; left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: #1e0d14; color: #fff;
+  background: #1c0b12; color: #fff;
   font-family: 'Cormorant Garamond', serif;
   font-style: italic; font-size: 1rem;
   padding: .8rem 2.2rem; border-radius: 30px;
-  border: 1px solid rgba(184,48,88,.3);
+  border: 1px solid rgba(184,48,88,.28);
   opacity: 0; pointer-events: none;
   transition: opacity .4s, transform .4s;
   z-index: 60;
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Floating hearts */
+/* ════════════════════════════════
+   FLOATING HEARTS
+════════════════════════════════ */
 .hpop {
   position: fixed; pointer-events: none;
   opacity: 0; z-index: 20;
-  animation: hRise 2.4s ease-out forwards;
+  animation: hRise 2.5s ease-out forwards;
 }
 @keyframes hRise {
-  0%   { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
-  100% { opacity: 0; transform: translateY(-200px) scale(.25) rotate(22deg); }
+  0%   { opacity: 1; transform: translateY(0) scale(1) rotate(-5deg); }
+  100% { opacity: 0; transform: translateY(-220px) scale(.2) rotate(20deg); }
 }
-
-#letter::-webkit-scrollbar { width: 5px; }
-#letter::-webkit-scrollbar-thumb { background: var(--rose-lt); border-radius: 3px; }
 </style>
 </head>
 <body>
 
-<canvas id="bg"></canvas>
+<canvas id="bg-canvas"></canvas>
 
 <div id="stage">
   <p id="tagline">✦ &nbsp; A letter, written from the heart &nbsp; ✦</p>
 
-  <div id="scene">
+  <!-- Envelope + floating letter card share this container -->
+  <div id="env-scene">
+
+    <!-- Envelope -->
     <div id="envelope" role="button" aria-label="Open the letter" tabindex="0">
       <div class="env-body"></div>
-
       <div id="flap">
-        <div class="flap-front"></div>
-        <div class="flap-back"></div>
+        <div class="flap-f"></div>
+        <div class="flap-b"></div>
       </div>
-
       <div id="seal">💌</div>
+    </div>
 
-      <article id="letter">
-        <p class="ltr-date" id="ltr-date"></p>
-        <p class="ltr-salutation">Dear Sweetheart,</p>
-        <p class="ltr-body">
+    <!-- Letter card — rises out of envelope -->
+    <div id="letter-card" aria-live="polite">
+      <div class="lc">
+        <p class="lc-date" id="lc-date"></p>
+        <p class="lc-sal">Dear Sweetheart,</p>
+        <p class="lc-body">
           I sincerely apologize for the pain I have caused you on Sunday.
           I have been having a hard time knowing that I hurt you.
           You know I love you so much, and it hurts me seeing you hurt.
@@ -383,19 +422,20 @@ canvas#bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
           so please let me do it right.<br><br>
           Please accept my apology.
         </p>
-        <p class="ltr-sign">
+        <p class="lc-sign">
           Sincerely,
-          <span class="ltr-signature">Clark Kent</span>
+          <span class="lc-sig">Clark Kent</span>
         </p>
-      </article>
+      </div>
     </div>
-  </div>
+
+  </div><!-- /env-scene -->
 
   <p id="hint">✦ &nbsp; click to open &nbsp; ✦</p>
   <button id="reply-btn">Write a Reply &nbsp;✉</button>
 </div>
 
-<!-- Reply modal -->
+<!-- Modal -->
 <div id="modal-overlay" role="dialog" aria-modal="true">
   <div id="modal">
     <h2>Your Reply</h2>
@@ -413,53 +453,47 @@ canvas#bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 <div id="toast"></div>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   EmailJS Setup
-   1. Go to https://www.emailjs.com  (free account)
-   2. Add an Email Service  → copy Service ID
-   3. Add a Template with variables:
-        {{from_name}}  {{message}}  {{to_email}}
-      → copy Template ID
-   4. Copy your Public Key from Account → API Keys
-   5. Paste the three values below
-═══════════════════════════════════════════════════ */
-const EJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // ← replace
-const EJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // ← replace
-const EJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // ← replace
-const RECIPIENT       = 'baldwinmalabanan.bm@gmail.com';
+/* ═══════════════════════════════════════════
+   EmailJS  —  replace the 3 values below
+   Docs: https://www.emailjs.com
+═══════════════════════════════════════════ */
+const EJS_KEY      = 'YOUR_PUBLIC_KEY';    // Account → API Keys
+const EJS_SERVICE  = 'YOUR_SERVICE_ID';   // Email Services tab
+const EJS_TEMPLATE = 'YOUR_TEMPLATE_ID';  // Email Templates tab
+const RECIPIENT    = 'baldwinmalabanan.bm@gmail.com';
 
-emailjs.init(EJS_PUBLIC_KEY);
+emailjs.init(EJS_KEY);
 
-/* ── Particle canvas ── */
-const canvas = document.getElementById('bg');
-const ctx    = canvas.getContext('2d');
+/* ─── Particle canvas ─── */
+const cvs = document.getElementById('bg-canvas');
+const ctx  = cvs.getContext('2d');
 let W, H;
-const resize = () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight; };
-resize();
-window.addEventListener('resize', resize);
+const setSize = () => { W = cvs.width = innerWidth; H = cvs.height = innerHeight; };
+setSize();
+window.addEventListener('resize', setSize);
 
-const SYMS = ['♥','✦','✿','·','✧'];
-const pts  = Array.from({ length: 60 }, () => mkPt(true));
+const SYM = ['♥','✦','✿','·','✧'];
+const PTS = Array.from({ length: 65 }, () => newPt(true));
 
-function mkPt(scatter) {
+function newPt(spread) {
   return {
-    x: Math.random() * (W || 800),
-    y: scatter ? Math.random() * (H || 600) : (H || 600) + 10,
-    s: SYMS[Math.floor(Math.random() * SYMS.length)],
+    x:  Math.random() * (W || 900),
+    y:  spread ? Math.random() * (H || 650) : (H || 650) + 12,
+    s:  SYM[Math.floor(Math.random() * SYM.length)],
     sz: Math.random() * 13 + 6,
-    sp: Math.random() * .5 + .18,
-    a:  Math.random() * .45 + .08,
-    dx: (Math.random() - .5) * .35,
+    sp: Math.random() * .48 + .16,
+    a:  Math.random() * .42 + .07,
+    dx: (Math.random() - .5) * .34,
     r:  Math.random() * Math.PI * 2,
-    rs: (Math.random() - .5) * .012,
+    rs: (Math.random() - .5) * .013,
   };
 }
 
-(function tick() {
+(function frame() {
   ctx.clearRect(0, 0, W, H);
-  pts.forEach((p, i) => {
+  PTS.forEach((p, i) => {
     p.y -= p.sp; p.x += p.dx; p.r += p.rs;
-    if (p.y < -20) pts[i] = mkPt(false);
+    if (p.y < -22) PTS[i] = newPt(false);
     ctx.save();
     ctx.translate(p.x, p.y); ctx.rotate(p.r);
     ctx.globalAlpha = p.a;
@@ -469,115 +503,134 @@ function mkPt(scatter) {
     ctx.fillText(p.s, 0, 0);
     ctx.restore();
   });
-  requestAnimationFrame(tick);
+  requestAnimationFrame(frame);
 })();
 
-/* ── Intro ── */
-gsap.to('#tagline', { opacity: 1, y: 0, duration: 1.2, ease: 'power2.out', delay: .4 });
-gsap.to('#hint',    { opacity: 1, duration: 1, delay: 1.1 });
+/* ─── Intro animations ─── */
+gsap.to('#tagline', { opacity: 1, y: 0, duration: 1.3, ease: 'power2.out', delay: .4 });
+gsap.to('#hint',    { opacity: 1, duration: 1, delay: 1.2 });
 
-document.getElementById('ltr-date').textContent =
-  new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+document.getElementById('lc-date').textContent =
+  new Date().toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
 
-/* ── Open envelope ── */
-const scene    = document.getElementById('scene');
+/* ─── Envelope open ─── */
 const env      = document.getElementById('envelope');
 const hintEl   = document.getElementById('hint');
+const card     = document.getElementById('letter-card');
 const replyBtn = document.getElementById('reply-btn');
 let opened = false;
 
 function openEnvelope() {
   if (opened) return;
   opened = true;
-  env.classList.add('no-hover');
-  scene.classList.add('opened');
+
+  env.classList.add('opened', 'no-tilt');
   hintEl.classList.add('gone');
 
-  gsap.to('.ltr-date',        { opacity: 1, y: 0, duration: .55, delay: .95 });
-  gsap.to('.ltr-salutation',  { opacity: 1, y: 0, duration: .6,  delay: 1.15 });
-  gsap.to('.ltr-body',        { opacity: 1, y: 0, duration: .7,  delay: 1.35 });
-  gsap.to('.ltr-sign',        { opacity: 1, y: 0, duration: .55, delay: 1.7  });
+  // After flap opens (≈0.7s), show letter card
+  setTimeout(() => {
+    card.classList.add('visible');
+    // Stagger letter text via GSAP
+    gsap.to('.lc-date',  { opacity: 1, y: 0, duration: .5, delay: .35 });
+    gsap.to('.lc-sal',   { opacity: 1, y: 0, duration: .6, delay: .55 });
+    gsap.to('.lc-body',  { opacity: 1, y: 0, duration: .7, delay: .75 });
+    gsap.to('.lc-sign',  { opacity: 1, y: 0, duration: .5, delay: 1.05 });
+  }, 600);
 
-  spawnHearts(innerWidth / 2, innerHeight / 2, 14);
-  setTimeout(() => replyBtn.classList.add('show'), 2200);
+  burst(innerWidth / 2, innerHeight * .48, 14);
+  setTimeout(() => replyBtn.classList.add('show'), 2500);
 }
 
 env.addEventListener('click', openEnvelope);
-env.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openEnvelope(); });
+env.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') openEnvelope();
+});
 
-/* 3-D tilt on hover */
+/* 3-D hover tilt */
+const scene = document.getElementById('env-scene');
 scene.addEventListener('mousemove', e => {
   if (opened) return;
-  const r  = scene.getBoundingClientRect();
+  const r  = env.getBoundingClientRect();
   const dx = (e.clientX - r.left - r.width  / 2) / (r.width  / 2);
   const dy = (e.clientY - r.top  - r.height / 2) / (r.height / 2);
-  gsap.to(env, { rotateY: dx * 10, rotateX: -dy * 8, duration: .4, ease: 'power2.out' });
+  gsap.to(env, { rotateY: dx * 11, rotateX: -dy * 9,
+                 duration: .4, ease: 'power2.out',
+                 transformStyle: 'preserve-3d' });
 });
 scene.addEventListener('mouseleave', () => {
-  if (!opened) gsap.to(env, { rotateY: 0, rotateX: 0, duration: .6, ease: 'elastic.out(1,.6)' });
+  if (!opened) gsap.to(env, { rotateY: 0, rotateX: 0,
+    duration: .65, ease: 'elastic.out(1,.55)' });
 });
 
-/* ── Heart burst ── */
-function spawnHearts(cx, cy, count) {
-  const s = ['💕','💗','💖','♥','💓','🌹'];
-  for (let i = 0; i < count; i++) {
+/* ─── Heart burst ─── */
+function burst(cx, cy, n) {
+  const pool = ['💕','💗','💖','♥','💓','🌹'];
+  for (let i = 0; i < n; i++) {
     setTimeout(() => {
       const el = document.createElement('div');
       el.className = 'hpop';
-      el.textContent = s[Math.floor(Math.random() * s.length)];
-      el.style.cssText = `left:${cx + (Math.random()-.5)*200}px;top:${cy + (Math.random()-.5)*100}px;font-size:${Math.random()*18+10}px`;
+      el.textContent = pool[Math.floor(Math.random() * pool.length)];
+      el.style.left     = cx + (Math.random() - .5) * 220 + 'px';
+      el.style.top      = cy + (Math.random() - .5) * 110 + 'px';
+      el.style.fontSize = Math.random() * 18 + 10 + 'px';
       document.body.appendChild(el);
-      setTimeout(() => el.remove(), 2500);
-    }, i * 75);
+      setTimeout(() => el.remove(), 2700);
+    }, i * 72);
   }
 }
 
-/* ── Modal ── */
+/* ─── Modal ─── */
 const overlay   = document.getElementById('modal-overlay');
-const replyName = document.getElementById('reply-name');
-const replyMsg  = document.getElementById('reply-msg');
+const nameInput = document.getElementById('reply-name');
+const msgInput  = document.getElementById('reply-msg');
 const sendBtn   = document.getElementById('btn-send');
 const toast     = document.getElementById('toast');
 
-replyBtn.addEventListener('click', () => { overlay.classList.add('active'); replyName.focus(); });
+replyBtn.addEventListener('click', () => {
+  overlay.classList.add('active');
+  nameInput.focus();
+});
 document.getElementById('btn-cancel').addEventListener('click', closeModal);
 overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
 function closeModal() { overlay.classList.remove('active'); }
 
-function showToast(msg) {
+function showToast(msg, dur = 3800) {
   toast.textContent = msg;
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 3600);
+  setTimeout(() => toast.classList.remove('show'), dur);
 }
 
 sendBtn.addEventListener('click', async () => {
-  const name = replyName.value.trim();
-  const msg  = replyMsg.value.trim();
+  const name = nameInput.value.trim();
+  const msg  = msgInput.value.trim();
 
-  replyName.style.borderColor = name ? '' : 'var(--rose)';
-  replyMsg.style.borderColor  = msg  ? '' : 'var(--rose)';
-  if (!name) { replyName.focus(); return; }
-  if (!msg)  { replyMsg.focus();  return; }
+  nameInput.style.borderColor = name ? '' : '#b83058';
+  msgInput.style.borderColor  = msg  ? '' : '#b83058';
+  if (!name) { nameInput.focus(); return; }
+  if (!msg)  { msgInput.focus();  return; }
 
   sendBtn.disabled    = true;
   sendBtn.textContent = 'Sending…';
 
   try {
-    await emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_ID, {
+    await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
       to_email:  RECIPIENT,
       from_name: name,
       message:   msg,
     });
 
     closeModal();
-    replyName.value = '';
-    replyMsg.value  = '';
+    nameInput.value = '';
+    msgInput.value  = '';
     showToast('Reply sent with love 💕');
-    spawnHearts(innerWidth / 2, innerHeight * .65, 20);
+    burst(innerWidth / 2, innerHeight * .62, 22);
 
   } catch (err) {
     console.error('EmailJS error:', err);
-    showToast('⚠️ Could not send — check EmailJS config');
+    showToast('⚠️ Could not send — check EmailJS config', 5000);
   } finally {
     sendBtn.disabled    = false;
     sendBtn.textContent = 'Send Reply 💌';
